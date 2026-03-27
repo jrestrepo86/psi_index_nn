@@ -10,7 +10,7 @@ class PsiModel(nn.Module):
     def __init__(
         self,
         input_dim: int,
-        hidden_layers: list[int] = [64, 32],
+        hidden_layers: list[int] = [64, 32, 16],
         afn: str = "gelu",
         loss_type: str = "psi_jef",
         remine_reg_weight: float = 0.1,
@@ -48,7 +48,9 @@ class PsiModel(nn.Module):
 
         elif self.loss_type == "psi_remine":
             term_p = (t_p - torch.exp(-t_p) + 1).mean()
-            log_partition = torch.logsumexp(t_q.squeeze(), dim=0) - math.log(t_q.shape[0])
+            log_partition = torch.logsumexp(t_q.squeeze(), dim=0) - math.log(
+                t_q.shape[0]
+            )
             term_q = torch.exp(log_partition) + t_q.mean() - 1
             psi_est = term_p - term_q
             base_loss = -psi_est

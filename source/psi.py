@@ -9,14 +9,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import schedulefree
 import torch
+import torch.optim as optim
 from plotly.subplots import make_subplots
 
-from source.utils import (
-    EarlyStopping,
-    ExpMovingAverageSmooth,
-    to_col_vector,
-    train_test_split,
-)
+from source.utils import (EarlyStopping, ExpMovingAverageSmooth, to_col_vector,
+                          train_test_split)
 
 from .psi_models import PsiModel
 from .psi_sampler import PsiSampler
@@ -78,6 +75,12 @@ class Psi:
             weight_decay=weight_decay,
             warmup_steps=1000,
         )
+
+        # self.optimizer = optim.Adam(
+        #     self.model.parameters(),
+        #     lr=lr,
+        #     weight_decay=weight_decay,
+        # )
 
         # Early stopping
         early_stopping = EarlyStopping(
@@ -142,9 +145,9 @@ class Psi:
                         }
                     )
 
-            if smoothed_loss < best_loss:
-                best_loss = smoothed_loss
-                best_state = copy.deepcopy(self.model.state_dict())
+            # if smoothed_loss < best_loss:
+            #     best_loss = smoothed_loss
+            #     best_state = copy.deepcopy(self.model.state_dict())
 
             early_stopping(smoothed_loss)
             if early_stopping.early_stop:

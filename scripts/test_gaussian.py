@@ -24,20 +24,44 @@ from source.psi import Psi
 torch.manual_seed(42)
 np.random.seed(42)
 
-N_SAMPLES = 5000
-TRAIN_KWARGS = dict(num_epochs=500, batch_size=64)
+N_SAMPLES = 3000
+LOSS_TYPE = "psi_remine"
+# LOSS_TYPE = "psi_jef"
+MODEL_KWARGS = dict(
+    hidden_layers=[64, 64, 64, 64],
+    # hidden_layers=[32, 32, 32],
+    # hidden_layers=[32, 16, 8],
+    afn="relu",
+    remine_reg_weight=0.1,
+    remine_target_val=0.0,
+)
+
+TRAIN_KWARGS = dict(
+    num_epochs=5000,
+    batch_size=128,
+    lr=1e-4,
+    weight_decay=1e-5,
+    test_size=0.3,
+    contiguous_split=False,
+    # contiguous_split=True,
+    stop_patience=100,
+    stop_min_delta=1e-4,
+    stop_warmup_steps=1000,
+)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def run_scenario(name, X_p, X_q, exact, loss_type, abs_tol=None, rel_tol=None):
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"  {name}")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     print(f"  Exact PSI  : {exact:.4f}")
 
-    psi = Psi(X_p, X_q, loss_type=loss_type)
+    psi = Psi(X_p, X_q, loss_type=loss_type, **MODEL_KWARGS)
     psi.train(**TRAIN_KWARGS)
+    psi.plot_metrics(text=f"{name}")
     estimated = psi.get_psi()
 
     print(f"  Estimated  : {estimated:.4f}")
@@ -57,60 +81,63 @@ def run_scenario(name, X_p, X_q, exact, loss_type, abs_tol=None, rel_tol=None):
 
 
 # ── (a) No Shift ──────────────────────────────────────────────────────────────
-mu    = torch.zeros(2)
+mu = torch.zeros(2)
 cov_i = torch.eye(2)
 
-dist  = MultivariateNormal(mu, cov_i)
-X_p   = dist.sample((N_SAMPLES,)).numpy()
-X_q   = dist.sample((N_SAMPLES,)).numpy()
+dist = MultivariateNormal(mu, cov_i)
+X_p = dist.sample((N_SAMPLES,)).numpy()
+X_q = dist.sample((N_SAMPLES,)).numpy()
 
 exact_a = exact_gaussian_psi(mu, cov_i, mu, cov_i)
 
 run_scenario(
     "(a) No Shift  —  P = Q = N([0,0], I)",
-    X_p, X_q,
+    X_p,
+    X_q,
     exact=exact_a,
-    loss_type="psi_jef",
+    loss_type=LOSS_TYPE,
     abs_tol=0.1,
 )
 
 # ── (b) Mean Shift ────────────────────────────────────────────────────────────
-mu_p  = torch.zeros(2)
-mu_q  = torch.tensor([1.5, 1.5])
+mu_p = torch.zeros(2)
+mu_q = torch.tensor([1.5, 1.5])
 cov_i = torch.eye(2)
 
 dist_p = MultivariateNormal(mu_p, cov_i)
 dist_q = MultivariateNormal(mu_q, cov_i)
-X_p    = dist_p.sample((N_SAMPLES,)).numpy()
-X_q    = dist_q.sample((N_SAMPLES,)).numpy()
+X_p = dist_p.sample((N_SAMPLES,)).numpy()
+X_q = dist_q.sample((N_SAMPLES,)).numpy()
 
 exact_b = exact_gaussian_psi(mu_p, cov_i, mu_q, cov_i)
 
 run_scenario(
     "(b) Mean Shift  —  P=N([0,0],I), Q=N([1.5,1.5],I)",
-    X_p, X_q,
+    X_p,
+    X_q,
     exact=exact_b,
-    loss_type="psi_jef",
+    loss_type=LOSS_TYPE,
     rel_tol=0.10,
 )
 
 # ── (c) Covariance Shift ──────────────────────────────────────────────────────
 mu_zero = torch.zeros(2)
-cov_pos = torch.tensor([[1.0,  0.8], [ 0.8, 1.0]])
+cov_pos = torch.tensor([[1.0, 0.8], [0.8, 1.0]])
 cov_neg = torch.tensor([[1.0, -0.8], [-0.8, 1.0]])
 
 dist_p = MultivariateNormal(mu_zero, cov_pos)
 dist_q = MultivariateNormal(mu_zero, cov_neg)
-X_p    = dist_p.sample((N_SAMPLES,)).numpy()
-X_q    = dist_q.sample((N_SAMPLES,)).numpy()
+X_p = dist_p.sample((N_SAMPLES,)).numpy()
+X_q = dist_q.sample((N_SAMPLES,)).numpy()
 
 exact_c = exact_gaussian_psi(mu_zero, cov_pos, mu_zero, cov_neg)
 
 run_scenario(
     "(c) Covariance Shift  —  P=N(0,Σ+0.8), Q=N(0,Σ-0.8)",
-    X_p, X_q,
+    X_p,
+    X_q,
     exact=exact_c,
-    loss_type="psi_remine",
+    loss_type=LOSS_TYPE,
     rel_tol=0.15,
 )
 
