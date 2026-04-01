@@ -15,6 +15,7 @@ class PsiModel(nn.Module):
         loss_type: str = "psi_jef",
         remine_reg_weight: float = 0.1,
         remine_target_val: float = 0.0,
+        clamp_max: float = 10.0,
     ):
         super().__init__()
 
@@ -33,12 +34,17 @@ class PsiModel(nn.Module):
         self.loss_type = loss_type.lower()
         self.remine_reg_weight = remine_reg_weight
         self.remine_target_val = remine_target_val
+        self.clamp_max = clamp_max
 
     def forward(
         self, data_p: torch.Tensor, data_q: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
         t_p = self.network(data_p)  # (N, 1)
         t_q = self.network(data_q)  # (N, 1)
+
+        if self.clamp_max is not None:
+            t_p = torch.clamp(t_p, -self.clamp_max, self.clamp_max)
+            t_q = torch.clamp(t_q, -self.clamp_max, self.clamp_max)
 
         if self.loss_type == "psi_jef":
             term_p = (t_p - torch.exp(-t_p) + 1).mean()

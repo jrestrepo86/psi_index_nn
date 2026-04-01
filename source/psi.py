@@ -29,6 +29,7 @@ class Psi:
         loss_type: str = "psi_jef",
         remine_reg_weight: float = 0.1,
         remine_target_val: float = 0.0,
+        clamp_max: float = 10.0,
         device: str | None = None,
     ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -45,6 +46,7 @@ class Psi:
             loss_type=loss_type,
             remine_reg_weight=remine_reg_weight,
             remine_target_val=remine_target_val,
+            clamp_max=clamp_max,
         ).to(self.device)
 
         self.loss_type = loss_type
@@ -59,6 +61,7 @@ class Psi:
         num_epochs: int = 500,
         lr: float = 1e-4,
         weight_decay: float = 1e-3,
+        max_grad_norm: float = 5.0,
         test_size: float = 0.3,
         contiguous_split: bool = False,
         stop_patience: int = 100,
@@ -123,6 +126,8 @@ class Psi:
                 self.optimizer.zero_grad()
                 _, loss = self.model(batch_p, batch_q)
                 loss.backward()
+                if max_grad_norm is not None:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=max_grad_norm)
                 self.optimizer.step()
 
             # Evaluation
@@ -145,9 +150,9 @@ class Psi:
                         }
                     )
 
-            # if smoothed_loss < best_loss:
-            #     best_loss = smoothed_loss
-            #     best_state = copy.deepcopy(self.model.state_dict())
+            if smoothed_loss < best_loss:
+                best_loss = smoothed_loss
+                best_state = copy.deepcopy(self.model.state_dict())
 
             early_stopping(smoothed_loss)
             if early_stopping.early_stop:

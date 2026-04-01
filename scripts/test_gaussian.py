@@ -24,23 +24,25 @@ from source.psi import Psi
 torch.manual_seed(42)
 np.random.seed(42)
 
-N_SAMPLES = 3000
+N_SAMPLES = 20000
 LOSS_TYPE = "psi_remine"
 # LOSS_TYPE = "psi_jef"
 MODEL_KWARGS = dict(
     hidden_layers=[64, 64, 64, 64],
     # hidden_layers=[32, 32, 32],
     # hidden_layers=[32, 16, 8],
-    afn="relu",
+    afn="gelu",
     remine_reg_weight=0.1,
     remine_target_val=0.0,
+    clamp_max=10.0,
 )
 
 TRAIN_KWARGS = dict(
-    num_epochs=5000,
-    batch_size=128,
-    lr=1e-4,
-    weight_decay=1e-5,
+    num_epochs=30000,
+    batch_size=512,
+    lr=5e-4,
+    weight_decay=1e-3,
+    max_grad_norm=5.0,
     test_size=0.3,
     contiguous_split=False,
     # contiguous_split=True,
