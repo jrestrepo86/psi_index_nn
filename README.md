@@ -34,7 +34,7 @@ Donde $T(x)$ es una función escalar arbitraria (nuestro "crítico", modelado po
 
 Dado que el PSI es la suma de dos divergencias KL en direcciones opuestas, necesitaríamos teóricamente dos críticos ($T_1$ y $T_2$). Sin embargo, aprovechando la propiedad del logaritmo:
 
-$$T_2^*(x) = \ln\left(\frac{Q(x)}{P(x)}\right) = - \ln\left(\frac{P(x)}{Q(x)}\right) = -T_1^*(x)$$
+$${T_2^*(x) = \ln\left(\frac{Q(x)}{P(x)}\right) = - \ln\left(\frac{P(x)}{Q(x)}\right) = -T_1^*(x)}$$
 
 Podemos sustituir $T_2$ por $-T_1$. Llamando simplemente $T$ a nuestra única red neuronal, la cota variacional completa para el PSI se convierte en:
 
