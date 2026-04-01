@@ -34,13 +34,13 @@ MODEL_KWARGS = dict(
     afn="gelu",
     remine_reg_weight=0.1,
     remine_target_val=0.0,
-    clamp_max=5.0,
+    clamp_max=10.0,
 )
 
 TRAIN_KWARGS = dict(
     num_epochs=30000,
-    batch_size=128,
-    lr=1e-3,
+    batch_size=512,
+    lr=5e-4,
     weight_decay=1e-3,
     max_grad_norm=5.0,
     test_size=0.3,
