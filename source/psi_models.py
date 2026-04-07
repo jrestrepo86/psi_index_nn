@@ -16,6 +16,7 @@ class PsiModel(nn.Module):
         remine_reg_weight: float = 0.1,
         remine_target_val: float = 0.0,
         clamp_max: float = 10.0,
+        tau: float = 0.01,
     ):
         super().__init__()
 
@@ -35,6 +36,7 @@ class PsiModel(nn.Module):
         self.remine_reg_weight = remine_reg_weight
         self.remine_target_val = remine_target_val
         self.clamp_max = clamp_max
+        self.tau = tau
 
     def forward(
         self, data_p: torch.Tensor, data_q: torch.Tensor
@@ -42,7 +44,8 @@ class PsiModel(nn.Module):
         t_p = self.network(data_p)  # (N, 1)
         t_q = self.network(data_q)  # (N, 1)
 
-        if self.clamp_max is not None:
+        # Clamp critic outputs (not used for classifier — sigmoid handles bounding)
+        if self.clamp_max is not None and self.loss_type != "psi_classifier":
             t_p = torch.clamp(t_p, -self.clamp_max, self.clamp_max)
             t_q = torch.clamp(t_q, -self.clamp_max, self.clamp_max)
 
@@ -63,9 +66,23 @@ class PsiModel(nn.Module):
             reg = self.remine_reg_weight * (log_partition - self.remine_target_val) ** 2
             loss = base_loss + reg
 
+        elif self.loss_type == "psi_classifier":
+            # Apply sigmoid + clip to get classifier output in [tau, 1-tau]
+            omega_p = torch.sigmoid(t_p).clamp(self.tau, 1.0 - self.tau)
+            omega_q = torch.sigmoid(t_q).clamp(self.tau, 1.0 - self.tau)
+
+            # Training loss: binary cross-entropy (P=1, Q=0)
+            loss = -(torch.log(omega_p).mean() + torch.log(1.0 - omega_q).mean())
+
+            # PSI estimation: E_P[logit(ω)] - E_Q[logit(ω)]
+            log_gamma_p = torch.log(omega_p) - torch.log(1.0 - omega_p)
+            log_gamma_q = torch.log(omega_q) - torch.log(1.0 - omega_q)
+            psi_est = log_gamma_p.mean() - log_gamma_q.mean()
+
         else:
             raise ValueError(
-                f"Unknown loss_type '{self.loss_type}'. Use 'psi_jef' or 'psi_remine'."
+                f"Unknown loss_type '{self.loss_type}'. "
+                "Use 'psi_jef', 'psi_remine', or 'psi_classifier'."
             )
 
         return psi_est, loss

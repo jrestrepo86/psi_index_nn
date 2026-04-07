@@ -30,6 +30,7 @@ class Psi:
         remine_reg_weight: float = 0.1,
         remine_target_val: float = 0.0,
         clamp_max: float = 10.0,
+        tau: float = 0.01,
         device: str | None = None,
     ):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -47,6 +48,7 @@ class Psi:
             remine_reg_weight=remine_reg_weight,
             remine_target_val=remine_target_val,
             clamp_max=clamp_max,
+            tau=tau,
         ).to(self.device)
 
         self.loss_type = loss_type

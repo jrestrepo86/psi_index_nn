@@ -59,7 +59,7 @@ gaussian_psi.py → standalone (torch only)
 
 ## Loss Variants
 
-Two loss types, both negating the variational bound so PyTorch minimizers apply:
+Three loss types. `psi_jef` and `psi_remine` negate the variational bound so PyTorch minimizers apply. `psi_classifier` uses standard BCE.
 
 **`"psi_jef"` (default)** — symmetric NWJ bound:
 ```
@@ -72,6 +72,21 @@ log_partition = logsumexp(t_q, 0) - log(N)
 loss = base_loss + remine_reg_weight * (log_partition - remine_target_val)^2
 ```
 `psi_est` is always derived from `base_loss` only — the regularizer does not inflate the estimate.
+
+**`"psi_classifier"`** — Binary classifier with BCE loss (Molavipour et al., 2021):
+
+Training loss (binary cross-entropy):
+```
+loss = -(mean[log ω(x_p)] + mean[log(1 - ω(x_q))])
+```
+
+PSI estimation (all in log space):
+```
+log_Γ(x) = logit(ω(x)) = log(ω(x)) - log(1 - ω(x))
+psi_est = mean[log_Γ(x_p)] - mean[log_Γ(x_q)]
+```
+
+where `ω(x) = sigmoid(T(x))` clipped to `[τ, 1-τ]`. The parameter `tau` (default `0.01`) controls the max density ratio (~`1/τ`). No exponential terms in training or estimation. Most stable variant — use when `psi_jef` or `psi_remine` show convergence issues. `clamp_max` is ignored for this variant (sigmoid handles bounding).
 
 ## Regularization Design
 
